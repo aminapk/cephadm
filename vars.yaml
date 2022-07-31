@@ -2,7 +2,7 @@ dns1: 213.186.33.99
 dns2: 8.8.8.8
 ceph_admin_ip: 51.68.219.65
 ceph_dashboard_user: admin
-ceph_dashboard_user: geekoo.ir
+ceph_dashboard_pass: geekoo.ir
 resolve: |
 
   51.68.219.65 ceph1
