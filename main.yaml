@@ -67,7 +67,7 @@
             when: inventory_hostname == 'ceph1'
 
           - name : cephadm bootstrap
-            shell: cephadm bootstrap --mon-ip "{{ ceph_admin_ip  }}" --initial-dashboard-user  admin --initial-dashboard-password novinhost.org --dashboard-password-noupdate 
+            shell: cephadm bootstrap --mon-ip "{{ ceph_admin_ip  }}" --initial-dashboard-user  {{ ceph_dashboard_user }} --initial-dashboard-password {{ ceph_dashboard_pass  }} --dashboard-password-noupdate 
             when: inventory_hostname == 'ceph1'
 
 
