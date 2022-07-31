@@ -1,0 +1,92 @@
+---
+- hosts: all
+  remote_user: root
+  vars_files:
+     - vars.yaml
+  tasks:
+          # upload ssh key                
+          - authorized_key:
+                  user: root
+                  state: present
+                  manage_dir: yes
+                  key: "{{ lookup('file', '/root/.ssh/id_rsa.pub') }}"
+
+          - name: Set a hostname
+            hostname:
+              name: "{{ inventory_hostname }}"
+
+          - name : Disable password login
+            lineinfile: 
+              dest: /etc/ssh/sshd_config
+              regexp: '^(#\s*)?PasswordAuthentication '
+              line: 'PasswordAuthentication no'	
+            notify: restart sshd
+         
+
+          - name : update /etc/hosts
+            blockinfile:
+              path: /etc/hosts
+              block: "{{ resolve }}"
+
+          - name : edit dns in /etc/resolv.conf
+            blockinfile:
+              path: /etc/resolv.conf
+              block: |
+                nameserver {{ dns1 }}
+                nameserver {{ dns2 }}
+              insertbefore : BOF
+          - name: install ca package on debian systems
+            apt:
+               name: ca-certificates
+               state: latest
+               update_cache: yes
+               force_apt_get: true
+ 
+
+
+          - name : Download cephadm
+            get_url:
+              url: https://github.com/ceph/ceph/raw/pacific/src/cephadm/cephadm
+              mode: '0754'
+              dest: /usr/bin/cephadm
+
+
+          - name: Install docker.io
+            apt:
+              name: docker.io
+              state: present
+              force_apt_get: true
+              update_cache: true
+
+
+          - name: add cephadm pacific repo
+            shell: cephadm add-repo --release pacific
+
+          - name : install cephadm
+            shell : cephadm install
+            when: inventory_hostname == 'ceph1'
+
+          - name : cephadm bootstrap
+            shell: cephadm bootstrap --mon-ip "{{ ceph_admin_ip  }}" --initial-dashboard-user  admin --initial-dashboard-password novinhost.org --dashboard-password-noupdate 
+            when: inventory_hostname == 'ceph1'
+
+
+          - name: get ceph pubkey from cphadm
+            fetch:
+              src: /etc/ceph/ceph.pub
+              dest: /root/ceph.pub
+              flat: yes
+            when:  inventory_hostname == 'ceph1'
+          
+          - name : copy chepadm admin public key to other ceph hosts
+            authorized_key:
+                  user: root
+                  state: present
+                  manage_dir: yes
+                  key: "{{ lookup('file', '/root/ceph.pub') }}"         
+          
+          
+
+  handlers:
+            - name : restart sshd
+              service: name=sshd state=restarted
